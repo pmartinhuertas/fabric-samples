@@ -27,43 +27,48 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-// SmartContract provides functions for managing a car
+// SmartContract provides functions for managing a did
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Car describes basic details of what makes up a car
-type Car struct {
-	Make   string `json:"make"`
-	Model  string `json:"model"`
-	Colour string `json:"colour"`
-	Owner  string `json:"owner"`
+// Did describes basic details of what makes up a did document
+type Did struct {
+	Id                          string `json:"id"`
+	AuthenticationId            string `json:"authenticationId"`
+	AuthenticationType          string `json:"authenticationType"`
+	AuthenticationController    string `json:"authenticationController"`
+	AuthenticationPublicKeyPerm string `json:"authenticationPublicKeyPerm"`
+	ServiceId                   string `json:"serviceId"`
+	ServiceType                 string `json:"serviceType"`
+	ServiceEndPoint             string `json:"serviceEndPoint"`
 }
 
 // QueryResult structure used for handling result of query
 type QueryResult struct {
 	Key    string `json:"Key"`
-	Record *Car
+	Record *Did
 }
 
-// InitLedger adds a base set of cars to the ledger
+// InitLedger adds a base set of dids to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	cars := []Car{
-		Car{Make: "Toyota", Model: "Prius", Colour: "blue", Owner: "Tomoko"},
-		Car{Make: "Ford", Model: "Mustang", Colour: "red", Owner: "Brad"},
-		Car{Make: "Hyundai", Model: "Tucson", Colour: "green", Owner: "Jin Soo"},
-		Car{Make: "Volkswagen", Model: "Passat", Colour: "yellow", Owner: "Max"},
-		Car{Make: "Tesla", Model: "S", Colour: "black", Owner: "Adriana"},
-		Car{Make: "Peugeot", Model: "205", Colour: "purple", Owner: "Michel"},
-		Car{Make: "Chery", Model: "S22L", Colour: "white", Owner: "Aarav"},
-		Car{Make: "Fiat", Model: "Punto", Colour: "violet", Owner: "Pari"},
-		Car{Make: "Tata", Model: "Nano", Colour: "indigo", Owner: "Valeria"},
-		Car{Make: "Holden", Model: "Barina", Colour: "brown", Owner: "Shotaro"},
+	dids := []Did{
+		Did{Id: "did:example:12346789abcdefghi", AuthenticationId: "did:example:12346789abcdefghi#keys-1",
+			AuthenticationType: "RsaVerificationKey2018", AuthenticationController: "did:example:12346789abcdefghi",
+			AuthenticationPublicKeyPerm: "-----BEGIN PUBLIC KEY...END PUBLIC KEY-----\r\n",
+			ServiceId:                   "did:example:12346789abcdefghi#vcs", ServiceType: "VerifiableCredentialService",
+			ServiceEndPoint: "https://example.com/vc/"},
+
+		Did{Id: "did:example:12346789asdfghjkl", AuthenticationId: "did:example:12346789asdfghjkl#keys-1",
+			AuthenticationType: "RsaVerificationKey2018", AuthenticationController: "did:example:12346789asdfghjkl",
+			AuthenticationPublicKeyPerm: "-----BEGIN PUBLIC KEY...END PUBLIC KEY-----\r\n",
+			ServiceId:                   "did:example:12346789aasdfghjkl#vcs", ServiceType: "VerifiableCredentialService",
+			ServiceEndPoint: "https://example2.com/vc/"},
 	}
 
-	for i, car := range cars {
-		carAsBytes, _ := json.Marshal(car)
-		err := ctx.GetStub().PutState("CAR"+strconv.Itoa(i), carAsBytes)
+	for i, did := range dids {
+		didAsBytes, _ := json.Marshal(did)
+		err := ctx.GetStub().PutState("DID"+strconv.Itoa(i), didAsBytes)
 
 		if err != nil {
 			return fmt.Errorf("Failed to put to world state. %s", err.Error())
@@ -73,42 +78,48 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 	return nil
 }
 
-// CreateCar adds a new car to the world state with given details
-func (s *SmartContract) CreateCar(ctx contractapi.TransactionContextInterface, carNumber string, make string, model string, colour string, owner string) error {
-	car := Car{
-		Make:   make,
-		Model:  model,
-		Colour: colour,
-		Owner:  owner,
+// CreateDid adds a new did to the world state with given details
+func (s *SmartContract) CreateDid(ctx contractapi.TransactionContextInterface, didNumber string, id string, authenticationId string, authenticationType string,
+	authenticationController string, authenticationPublicKeyPerm string, serviceId string, serviceType string, serviceEndPoint string) error {
+	did := Did{
+		Id:                          id,
+		AuthenticationId:            authenticationId,
+		AuthenticationType:          authenticationType,
+		AuthenticationController:    authenticationController,
+		AuthenticationPublicKeyPerm: authenticationPublicKeyPerm,
+		ServiceId:                   serviceId,
+		ServiceType:                 serviceType,
+		ServiceEndPoint:             serviceEndPoint,
 	}
 
-	carAsBytes, _ := json.Marshal(car)
+	didAsBytes, _ := json.Marshal(did)
 
-	return ctx.GetStub().PutState(carNumber, carAsBytes)
+	return ctx.GetStub().PutState(didNumber, didAsBytes)
 }
 
-// QueryCar returns the car stored in the world state with given id
-func (s *SmartContract) QueryCar(ctx contractapi.TransactionContextInterface, carNumber string) (*Car, error) {
-	carAsBytes, err := ctx.GetStub().GetState(carNumber)
+// QueryDidByKey returns the did stored in the world state with given key
+func (s *SmartContract) QueryDidByKey(ctx contractapi.TransactionContextInterface, didNumber string) (*Did, error) {
+	didAsBytes, err := ctx.GetStub().GetState(didNumber)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state. %s", err.Error())
 	}
 
-	if carAsBytes == nil {
-		return nil, fmt.Errorf("%s does not exist", carNumber)
+	if didAsBytes == nil {
+		return nil, fmt.Errorf("%s does not exist", didNumber)
 	}
 
-	car := new(Car)
-	_ = json.Unmarshal(carAsBytes, car)
+	did := new(Did)
+	_ = json.Unmarshal(didAsBytes, did)
 
-	return car, nil
+	return did, nil
 }
 
-// QueryAllCars returns all cars found in world state
-func (s *SmartContract) QueryAllCars(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
-	startKey := "CAR0"
-	endKey := "CAR99"
+// QueryDidById returns the did stored in the world state with given id
+
+func (s *SmartContract) QueryDidById(ctx contractapi.TransactionContextInterface, id string) (*Did, error) {
+	startKey := "DID0"
+	endKey := "DID99"
 
 	resultsIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
 
@@ -126,29 +137,49 @@ func (s *SmartContract) QueryAllCars(ctx contractapi.TransactionContextInterface
 			return nil, err
 		}
 
-		car := new(Car)
-		_ = json.Unmarshal(queryResponse.Value, car)
+		did := new(Did)
+		_ = json.Unmarshal(queryResponse.Value, did)
 
-		queryResult := QueryResult{Key: queryResponse.Key, Record: car}
+		if did.Id == id {
+			return did, nil
+		}
+
+		queryResult := QueryResult{Key: queryResponse.Key, Record: did}
+		results = append(results, queryResult)
+	}
+
+	return nil, fmt.Errorf("%s does not exist", id)
+}
+
+// QueryAllDids returns all did documents found in world state
+func (s *SmartContract) QueryAllDids(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
+	startKey := "DID0"
+	endKey := "DID99"
+
+	resultsIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
+
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	results := []QueryResult{}
+
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+
+		if err != nil {
+			return nil, err
+		}
+
+		did := new(Did)
+		_ = json.Unmarshal(queryResponse.Value, did)
+
+		queryResult := QueryResult{Key: queryResponse.Key, Record: did}
 		results = append(results, queryResult)
 	}
 
 	return results, nil
-}
-
-// ChangeCarOwner updates the owner field of car with given id in world state
-func (s *SmartContract) ChangeCarOwner(ctx contractapi.TransactionContextInterface, carNumber string, newOwner string) error {
-	car, err := s.QueryCar(ctx, carNumber)
-
-	if err != nil {
-		return err
-	}
-
-	car.Owner = newOwner
-
-	carAsBytes, _ := json.Marshal(car)
-
-	return ctx.GetStub().PutState(carNumber, carAsBytes)
 }
 
 func main() {
